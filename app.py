@@ -5,12 +5,11 @@ from PIL import Image
 import mobileclip
 import os
 from collections import deque
-        
+
 from openai import OpenAI
 import base64
-from PIL import Image
 import concurrent.futures
-import json
+import csv
 
 client = OpenAI()
 
@@ -113,28 +112,33 @@ with torch.no_grad(), torch.cuda.amp.autocast():
             webcam.release()
             break
 
+
 def get_image_data(image_path):
     with open(image_path, "rb") as image_file:
         response = client.chat.completions.create(
-        model="gpt-4-vision-preview",
-        messages=[
-            {
-            "role": "user",
-            "content": [
-                {"type": "text", "text": """what vinyl record is in this image? return in format:
+            model="gpt-4-vision-preview",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": """what vinyl record is in this image? return in format:
 
         Artist: artist
-        Album Name: name"""},
-                {
-                "type": "image_url",
-                "image_url": {
-                    "url": "data:image/jpeg;base64," + base64.b64encode(image_file.read()).decode("utf-8"),
-                },
-                },
+        Album Name: name""",
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": "data:image/jpeg;base64,"
+                                + base64.b64encode(image_file.read()).decode("utf-8"),
+                            },
+                        },
+                    ],
+                }
             ],
-            }
-        ],
-        max_tokens=300,
+            max_tokens=300,
         )
 
         result = response.choices[0].message.content
@@ -143,11 +147,17 @@ def get_image_data(image_path):
 
     return {"artist": artist, "album": album}
 
+
 with concurrent.futures.ThreadPoolExecutor() as executor:
-    futures = {executor.submit(get_image_data, f"vinyls/vinyl_{i}.jpg"): i for i in range(1, vinyl_count + 1)}
+    futures = {
+        executor.submit(get_image_data, f"vinyls/vinyl_{i}.jpg"): i
+        for i in range(1, vinyl_count + 1)
+    }
     for future in concurrent.futures.as_completed(futures):
         i = futures[future]
         results.append(future.result())
 
-with open("results.json", "w") as f:
-    json.dump(results, f)
+with open("results.csv", "w") as csvfile:
+    writer = csv.DictWriter(csvfile, fieldnames=["artist", "album"])
+    writer.writeheader()
+    writer.writerows(results)
