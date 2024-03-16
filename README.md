@@ -4,7 +4,7 @@ Use computer vision to index your vinyl record collection.
 
 ## Demo
 
-[add image]
+https://github.com/capjamesg/vinyl-record-indexing/assets/37276661/327f42fa-bace-4f17-b9b1-7e60f5bea524
 
 ## Getting Started
 
